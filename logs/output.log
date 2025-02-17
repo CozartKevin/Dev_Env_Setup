@@ -1,0 +1,13 @@
+Path already exists in PATH.
+Creating development folder structure...
+Directory already exists: C:\_dev
+Directory already exists: C:\_dev\build_tools
+Directory already exists: C:\_dev\tools
+Directory already exists: C:\_dev\libraries\audio
+Directory already exists: C:\_dev\libraries\embedded
+Directory already exists: C:\_dev\libraries\graphics
+Directory already exists: C:\_dev\libraries\networking
+
+Installing vcpkg...
+Installation Report:
+
