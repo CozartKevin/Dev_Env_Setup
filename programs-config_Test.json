@@ -22,11 +22,20 @@
             "Example": "To add 'example-program', you might define: { \"Name\": \"example-program\", \"Command\": \"./vcpkg/vcpkg install example\", \"Action\": \"Install\", \"InstallLocation\": \"GRAPHICS_LIB\" }"
         }
     },
+    "FolderMappings":[
+        {"Key": "BUILD_TOOLS", "Path": "build_tools"},
+        {"Key": "LIBRARIES", "Path": "libraries"},
+        {"Key": "TOOLS", "Path": "tools"},
+        {"Key": "AUDIO_LIB", "Path": "libraries\\audio"},
+        {"Key": "EMBEDDED_LIB", "Path": "libraries\\embedded"},
+        {"Key": "GRAPHICS_LIB", "Path": "libraries\\graphics"},
+        {"Key": "NETWORKING_LIB", "Path": "libraries\\networking"}
+    ],
     "Programs": [
         {
             "Name": "vcpkg",
             "Command": "git clone https://github.com/microsoft/vcpkg; .\\vcpkg\\bootstrap-vcpkg.bat",
-            "Action": "Uninstall",
+            "Action": "Install",
             "InstallLocation": "TOOLS"
         },
         {
