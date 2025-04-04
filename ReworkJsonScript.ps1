@@ -100,13 +100,34 @@ foreach ($program in $config.Programs) {
     $installLocation = $program.InstallLocation
     $actionString = $program.Action
 
-    # Validate ActionType
-    if ([string]::IsNullOrEmpty($actionString) -or -not ($ActionType::GetEnumValues() -contains $actionString)) {
-        Write-Host "Invalid or missing action '$actionString' for program '$programName'. Skipping program."
-        continue
-    }
+# DEBUG: Write-Host "Pre Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $actionString
 
-    $action = [ActionType]::GetEnumValues() | Where-Object { $_.ToString() -eq $actionString }
+    # Validate ActionType
+    if ([string]::IsNullOrEmpty($actionString) -or -not [enum]::IsDefined([ActionType], $actionString)) {
+    Write-Host "Invalid or missing action '$actionString' for program '$programName'. Skipping program."
+    continue
+}
+
+
+# DEBUG: Write-Host "Post Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $actionString
+
+    # Initialize $action properly before passing as [ref]
+    $action = [ActionType]::NoAction  # Default value to prevent 'null' reference issues | Good Practices 
+
+
+    # Check the result of TryParse without printing it
+    if ([ActionType]::TryParse($actionString, $true, [ref]$action)) {
+      Write-Host "Parsed Action: $action"
+    } else {
+      Write-Host "Invalid Action: $actionString"
+    }
+    
+
+    # TODO: Skip folder creation if NoAction
+    
+
+ 
+# DEBUG:  Write-Host "Poor value here: " $action
 
     # Validate InstallLocation
     if (-not $folderMapping.ContainsKey($installLocation)) {
@@ -115,5 +136,9 @@ foreach ($program in $config.Programs) {
     }
 
     # Execute program management
+    if ($action -ne [ActionType]::NoAction) {
     Manage-Program -ProgramName $programName -InstallCommand $installCommand -Action $action -InstallLocation $installLocation
+    } else {
+    Write-Host "NoAction Flag: Skipping Management of " $programName
+    }
 }
