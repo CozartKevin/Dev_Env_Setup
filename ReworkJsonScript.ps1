@@ -1,5 +1,5 @@
 ﻿# Path to the JSON configuration file (relative to script's location)
-$configPath = (Split-Path $MyInvocation.MyCommand.Path -Parent) + "\programs-config.json"
+$configPath = (Split-Path $MyInvocation.MyCommand.Path -Parent) + "\programs-config_Test.json"
 
 # Validate if JSON file exists
 if (-not (Test-Path -Path $configPath)) {
@@ -24,7 +24,6 @@ if (-not $config.Programs -or $config.Programs.GetType().Name -ne 'Object[]') {
 # ========================================
 # 1. Variable Initialization
 # ========================================
-
 $DEV_ROOT = (Split-Path $MyInvocation.MyCommand.Path -Qualifier) + "\_dev"
 $folderMapping = @{
     "BUILD_TOOLS" = "$DEV_ROOT\build_tools"
@@ -41,6 +40,7 @@ enum ActionType {
     Install
     Uninstall
     NoAction
+    CleanUp
 }
 
 function Ensure-FolderExists {
@@ -67,28 +67,65 @@ function Manage-Program {
         [string]$InstallLocation
     )
 
+    if (-not $folderMapping.ContainsKey($InstallLocation)) {
+        Write-Host "Invalid install location '$InstallLocation' for program '$ProgramName'. Skipping."
+        return
+    }
+
     $installPath = $folderMapping[$InstallLocation]
     Write-Host "Install Path: $installPath"
     Ensure-FolderExists -folderPath $installPath
 
-    $modifiedInstallCommand = "$InstallCommand --install-dir $installPath"
-
     if ($Action -eq [ActionType]::Install) {
         Write-Host "Installing $ProgramName..."
         try {
-            Start-Process -FilePath $modifiedInstallCommand -Wait
+            $commands = $InstallCommand -split ';'
+
+            foreach ($cmd in $commands) {
+                $trimmedCmd = $cmd.Trim()
+                Write-Host "Trimmed Command: " $trimmedCmd
+                if ($trimmedCmd -ne "") {
+                    # If command contains placeholder, replace with actual path
+                    $finalCmd = $trimmedCmd.Replace('\$InstallPath', "`"$installPath`"")
+                    Write-Host "Running: $finalCmd"
+                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $finalCmd -WorkingDirectory $installPath -Wait -NoNewWindow
+                }
+            }
+
             Write-Host "$ProgramName installed successfully."
         } catch {
             Write-Host "Error installing ${ProgramName}: $_"
         }
+
     } elseif ($Action -eq [ActionType]::Uninstall) {
         Write-Host "Uninstalling $ProgramName..."
         try {
-            Start-Process -FilePath $modifiedInstallCommand -Wait
-            Write-Host "$ProgramName uninstalled successfully."
+            if ($ProgramName -eq "vcpkg") {
+                # Handle vcpkg uninstallation separately
+                Write-Host "Removing vcpkg folder and related files..."
+                Remove-Item -Path "$installPath" -Recurse -Force
+                Write-Host "$ProgramName uninstalled successfully."
+            } else {
+                # Default uninstallation process using vcpkg uninstall command
+                $uninstallCommand = ".\\vcpkg\\vcpkg remove $ProgramName"
+                Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $uninstallCommand -WorkingDirectory $installPath -Wait -NoNewWindow
+                Write-Host "$ProgramName uninstalled successfully."
+            }
         } catch {
             Write-Host "Error uninstalling ${ProgramName}: $_"
         }
+
+    } elseif ($Action -eq [ActionType]::CleanUp) {
+        Write-Host "Cleaning up all installed programs..."
+
+        # Cleanup vcpkg and its packages
+        if (Test-Path "$installPath\\vcpkg") {
+            Remove-Item -Path "$installPath\\vcpkg" -Recurse -Force
+            Write-Host "vcpkg and its packages removed successfully."
+        }
+
+        # Additional cleanup logic for other installed programs can be added here
+
     } else {
         Write-Host "No action taken for $ProgramName."
     }
@@ -100,34 +137,21 @@ foreach ($program in $config.Programs) {
     $installLocation = $program.InstallLocation
     $actionString = $program.Action
 
-# DEBUG: Write-Host "Pre Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $actionString
-
     # Validate ActionType
     if ([string]::IsNullOrEmpty($actionString) -or -not [enum]::IsDefined([ActionType], $actionString)) {
-    Write-Host "Invalid or missing action '$actionString' for program '$programName'. Skipping program."
-    continue
-}
-
-
-# DEBUG: Write-Host "Post Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $actionString
-
-    # Initialize $action properly before passing as [ref]
-    $action = [ActionType]::NoAction  # Default value to prevent 'null' reference issues | Good Practices 
-
-
-    # Check the result of TryParse without printing it
-    if ([ActionType]::TryParse($actionString, $true, [ref]$action)) {
-      Write-Host "Parsed Action: $action"
-    } else {
-      Write-Host "Invalid Action: $actionString"
+        Write-Host "Invalid or missing action '$actionString' for program '$programName'. Skipping program."
+        continue
     }
-    
 
-    # TODO: Skip folder creation if NoAction
-    
+    # Initialize $action properly
+    $action = [ActionType]::NoAction
 
- 
-# DEBUG:  Write-Host "Poor value here: " $action
+    # Parse ActionType
+    if ([ActionType]::TryParse($actionString, $true, [ref]$action)) {
+        Write-Host "Parsed Action: $action"
+    } else {
+        Write-Host "Invalid Action: $actionString"
+    }
 
     # Validate InstallLocation
     if (-not $folderMapping.ContainsKey($installLocation)) {
@@ -137,8 +161,8 @@ foreach ($program in $config.Programs) {
 
     # Execute program management
     if ($action -ne [ActionType]::NoAction) {
-    Manage-Program -ProgramName $programName -InstallCommand $installCommand -Action $action -InstallLocation $installLocation
+        Manage-Program -ProgramName $programName -InstallCommand $installCommand -Action $action -InstallLocation $installLocation
     } else {
-    Write-Host "NoAction Flag: Skipping Management of " $programName
+        Write-Host "NoAction Flag: Skipping Management of:" $programName
     }
 }
