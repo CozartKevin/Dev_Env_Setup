@@ -1,5 +1,22 @@
-﻿# Path to the JSON configuration file (relative to script's location)
+﻿
+$isDebugMode = $true  # Change this to $false to disable debugging output
+
+function Debug-Write {
+    param (
+        [string]$message
+    )
+
+    if ($isDebugMode) {
+        Write-Host "DEBUG: $message"
+    }
+}
+
+
+
+# Path to the JSON configuration file (relative to script's location)
 $configPath = (Split-Path $MyInvocation.MyCommand.Path -Parent) + "\programs-config_Test.json"
+
+
 
 # Validate if JSON file exists
 if (-not (Test-Path -Path $configPath)) {
@@ -24,7 +41,7 @@ if (-not $config.Programs -or $config.Programs.GetType().Name -ne 'Object[]') {
 # ========================================
 # 1. Variable Initialization
 # ========================================
-$DEV_ROOT = (Split-Path $MyInvocation.MyCommand.Path -Qualifier) + "\_dev"
+$DEV_ROOT = (Split-Path $MyInvocation.MyCommand.Path -Qualifier)
 
 # Initialize folder mappings dynamically from the configuration
 $folderMapping = @{}
@@ -38,7 +55,7 @@ enum ActionType {
     Install
     Uninstall
     NoAction
-    CleanUp
+    Clean
     Update
     Validate
 }
@@ -67,13 +84,18 @@ function Manage-Program {
         [string]$InstallLocation
     )
 
+    
+    # Debug: Track the current program and action
+    Debug-Write "Managing Program: $ProgramName with Action: $Action"
+
     if (-not $folderMapping.ContainsKey($InstallLocation)) {
         Write-Host "Invalid install location '$InstallLocation' for program '$ProgramName'. Skipping."
         return
     }
 
     $installPath = $folderMapping[$InstallLocation]
-    Write-Host "Install Path: $installPath"
+   Debug-Write "Install Path: $installPath"
+
     Ensure-FolderExists -folderPath $installPath
 
     if ($Action -eq [ActionType]::Install) {
@@ -83,12 +105,13 @@ function Manage-Program {
 
             foreach ($cmd in $commands) {
                 $trimmedCmd = $cmd.Trim()
-                Write-Host "Trimmed Command: " $trimmedCmd
+                Debug-Write "Trimmed Command: " $trimmedCmd
+
                 if ($trimmedCmd -ne "") {
                     # If command contains placeholder, replace with actual path
                     $finalCmd = $trimmedCmd.Replace('\$InstallPath', "`"$installPath`"")
                     try {
-                        Write-Host "Running: $finalCmd"
+                        Debug-Write "Running command: $finalCmd"
                         Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $finalCmd -WorkingDirectory $installPath -Wait -NoNewWindow
                     } catch {
                         Write-Host "Error executing command: $finalCmd - $_"
@@ -162,10 +185,9 @@ foreach ($program in $config.Programs) {
     $installLocation = $program.InstallLocation
     $actionString = $program.Action
 
+
     # Normalize action string to lowercase
     $normalizedActionString = $actionString.ToLower()
-
-    # DEBUG: Write-Host "Pre Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $normalizedActionString
 
     # Validate ActionType using the dictionary
     if ($actionMap.ContainsKey($normalizedActionString)) {

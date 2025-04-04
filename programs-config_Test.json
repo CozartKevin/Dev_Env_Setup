@@ -23,19 +23,19 @@
         }
     },
     "FolderMappings":[
-        {"Key": "BUILD_TOOLS", "Path": "build_tools"},
-        {"Key": "LIBRARIES", "Path": "libraries"},
-        {"Key": "TOOLS", "Path": "tools"},
-        {"Key": "AUDIO_LIB", "Path": "libraries\\audio"},
-        {"Key": "EMBEDDED_LIB", "Path": "libraries\\embedded"},
-        {"Key": "GRAPHICS_LIB", "Path": "libraries\\graphics"},
-        {"Key": "NETWORKING_LIB", "Path": "libraries\\networking"}
+        {"Key": "BUILD_TOOLS", "Path": "\\_dev\\build_tools"},
+        {"Key": "LIBRARIES", "Path": "\\_dev\\libraries"},
+        {"Key": "TOOLS", "Path": "\\_dev\\tools"},
+        {"Key": "AUDIO_LIB", "Path": "\\_dev\\libraries\\audio"},
+        {"Key": "EMBEDDED_LIB", "Path": "\\_dev\\libraries\\embedded"},
+        {"Key": "GRAPHICS_LIB", "Path": "\\_dev\\libraries\\graphics"},
+        {"Key": "NETWORKING_LIB", "Path": "\\_dev\\libraries\\networking"}
     ],
     "Programs": [
         {
             "Name": "vcpkg",
             "Command": "git clone https://github.com/microsoft/vcpkg; .\\vcpkg\\bootstrap-vcpkg.bat",
-            "Action": "Install",
+            "Action": "install",
             "InstallLocation": "TOOLS"
         },
         {
