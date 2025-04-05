@@ -1,6 +1,15 @@
 TODO:
-
 Find a way to verify install of VCPKG before if/else of config check to simplify the looping in case VCPKG isnt in config and is installed
+    - Loop through all foldermapping elements searching for VCPKG (If found try to find vcpkg.exe)
 
 Adjust the adding to config of VCPKG so that it adds as first element so that VCPKG is always installed before any other program.
+    - had idea and semi plausible code but to tired to verify atm. 
 
+Update Main config with FolderMapping addition
+    - Just do it already cause its working. 
+
+DONE:
+setup config with how to info and basic test parameters
+Folder creation and verification
+Install/Uninstall VCPKG via config
+Adjust VCPKG config if set to intall but already installed
