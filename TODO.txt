@@ -1,0 +1,6 @@
+TODO:
+
+Find a way to verify install of VCPKG before if/else of config check to simplify the looping in case VCPKG isnt in config and is installed
+
+Adjust the adding to config of VCPKG so that it adds as first element so that VCPKG is always installed before any other program.
+
