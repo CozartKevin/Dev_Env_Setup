@@ -1,4 +1,16 @@
-﻿# Path to the JSON configuration file (relative to script's location)
+﻿$isDebugMode = $true  # Change this to $false to disable debugging output
+
+function Debug-Write {
+    param (
+        [string]$message
+    )
+
+    if ($isDebugMode) {
+        Write-Host "DEBUG: $message"
+    }
+}
+
+# Path to the JSON configuration file (relative to script's location)
 $configPath = (Split-Path $MyInvocation.MyCommand.Path -Parent) + "\programs-config_Test.json"
 
 # Validate if JSON file exists
@@ -21,24 +33,36 @@ if (-not $config.Programs -or $config.Programs.GetType().Name -ne 'Object[]') {
     exit
 }
 
+#check for VCPKG installation
+$vcpkgConfig = $config.Programs | Where-Object { $_.Name -eq "vcpkg" }
+
+if ($vcpkgConfig) {
+    # Check if vcpkgConfig has at least one result, then access its properties
+    Debug-Write "vcpkgConfig: Name = $($vcpkgConfig.Name), Action = $($vcpkgConfig.Action)"
+} else {
+    Debug-Write "vcpkgConfig not found in the config."
+}
+
 # ========================================
 # 1. Variable Initialization
 # ========================================
-$DEV_ROOT = (Split-Path $MyInvocation.MyCommand.Path -Qualifier) + "\_dev"
+$DEV_ROOT = (Split-Path $MyInvocation.MyCommand.Path -Qualifier)
 
 # Initialize folder mappings dynamically from the configuration
-$folderMapping = @{}
+$folderMapping = @{
+    # Define folder mappings here, or load from the config dynamically
+}
 foreach ($mapping in $config.FolderMappings) {
     $folderMapping[$mapping.Key] = Join-Path -Path $DEV_ROOT -ChildPath $mapping.Path
-    
 }
+
 
 # ActionType enum (Install, Uninstall, NoAction)
 enum ActionType {
     Install
     Uninstall
     NoAction
-    CleanUp
+    Clean
     Update
     Validate
 }
@@ -59,6 +83,7 @@ function Ensure-FolderExists {
     }
 }
 
+
 function Manage-Program {
     param (
         [string]$ProgramName,
@@ -67,86 +92,78 @@ function Manage-Program {
         [string]$InstallLocation
     )
 
+    Debug-Write "Managing Program: $ProgramName with Action: $Action"
+
     if (-not $folderMapping.ContainsKey($InstallLocation)) {
         Write-Host "Invalid install location '$InstallLocation' for program '$ProgramName'. Skipping."
         return
     }
 
     $installPath = $folderMapping[$InstallLocation]
-    Write-Host "Install Path: $installPath"
+    Debug-Write "Install Path: $installPath"
     Ensure-FolderExists -folderPath $installPath
 
-    if ($Action -eq [ActionType]::Install) {
-        Write-Host "Installing $ProgramName..."
-        try {
-            $commands = $InstallCommand -split ';'
-
-            foreach ($cmd in $commands) {
-                $trimmedCmd = $cmd.Trim()
-                Write-Host "Trimmed Command: " $trimmedCmd
-                if ($trimmedCmd -ne "") {
-                    # If command contains placeholder, replace with actual path
-                    $finalCmd = $trimmedCmd.Replace('\$InstallPath', "`"$installPath`"")
-                    try {
-                        Write-Host "Running: $finalCmd"
-                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $finalCmd -WorkingDirectory $installPath -Wait -NoNewWindow
-                    } catch {
-                        Write-Host "Error executing command: $finalCmd - $_"
+    switch ($Action) {
+        [ActionType]::Install {
+            Write-Host "Installing $ProgramName..."
+            try {
+                $commands = $InstallCommand -split ';'
+                foreach ($cmd in $commands) {
+                    $trimmedCmd = $cmd.Trim()
+                    Debug-Write "Trimmed Command: $trimmedCmd"
+                    if ($trimmedCmd -ne "") {
+                        $finalCmd = $trimmedCmd.Replace('\$InstallPath', "`"$installPath`"")
+                        try {
+                            Debug-Write "Running command: $finalCmd"
+                            Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $finalCmd -WorkingDirectory $installPath -Wait -NoNewWindow
+                        } catch {
+                            Write-Host "Error executing command: $finalCmd - $_"
+                        }
                     }
                 }
+                Write-Host "$ProgramName installed successfully."
+            } catch {
+                Write-Host "Error installing ${ProgramName}: $_"
             }
-
-            Write-Host "$ProgramName installed successfully."
-        } catch {
-            Write-Host "Error installing ${ProgramName}: $_"
         }
-
-    } elseif ($Action -eq [ActionType]::Uninstall) {
-        Write-Host "Uninstalling $ProgramName..."
-        try {
-            # Check if the program exists before attempting to uninstall
-            $programPath = Join-Path -Path $installPath -ChildPath $ProgramName
-            if (Test-Path $programPath) {
-                if ($ProgramName -eq "vcpkg") {
-                    # Handle vcpkg uninstallation separately
-                    Write-Host "Removing vcpkg folder and related files..."
-                    Remove-Item -Path "$installPath\$ProgramName" -Recurse -Force
-                    Write-Host "$ProgramName uninstalled successfully."
+        [ActionType]::Uninstall {
+            Write-Host "Uninstalling $ProgramName..."
+            try {
+                $programPath = Join-Path -Path $installPath -ChildPath $ProgramName
+                if (Test-Path $programPath) {
+                    if ($ProgramName -eq "vcpkg") {
+                        Write-Host "Removing vcpkg folder and related files..."
+                        Remove-Item -Path "$installPath\$ProgramName" -Recurse -Force
+                        Write-Host "$ProgramName uninstalled successfully."
+                    } else {
+                        $uninstallCommand = ".\\vcpkg\\vcpkg remove $ProgramName"
+                        Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $uninstallCommand -WorkingDirectory $installPath -Wait -NoNewWindow
+                        Write-Host "$ProgramName uninstalled successfully."
+                    }
                 } else {
-                    # Default uninstallation process using vcpkg uninstall command
-                    $uninstallCommand = ".\\vcpkg\\vcpkg remove $ProgramName"
-                    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $uninstallCommand -WorkingDirectory $installPath -Wait -NoNewWindow
-                    Write-Host "$ProgramName uninstalled successfully."
+                    Write-Host "Program '$ProgramName' not found at '$programPath'. Skipping uninstallation."
                 }
-            } else {
-                Write-Host "Program '$ProgramName' not found at '$programPath'. Skipping uninstallation."
+            } catch {
+                Write-Host "Error uninstalling ${ProgramName}: $_"
             }
-        } catch {
-            Write-Host "Error uninstalling ${ProgramName}: $_"
         }
-
-    } elseif ($Action -eq [ActionType]::CleanUp) {
-        Write-Host "Cleaning up all installed programs..."
-
-        # Cleanup vcpkg and its packages
-        if (Test-Path "$installPath\\vcpkg") {
-            Remove-Item -Path "$installPath\\vcpkg" -Recurse -Force
-            Write-Host "vcpkg and its packages removed successfully."
+        [ActionType]::Clean {
+            Write-Host "Cleaning up all installed programs..."
+            if (Test-Path "$installPath\\vcpkg") {
+                Remove-Item -Path "$installPath\\vcpkg" -Recurse -Force
+                Write-Host "vcpkg and its packages removed successfully."
+            }
         }
-
-        # Additional cleanup logic for other installed programs can be added here
-
-    } else {
-if ($action -eq [ActionType]::NoAction) {
-    Write-Host "No action taken for $programName. Skipping program management."
-}
-
-        Write-Host "No action taken for $ProgramName."
+        [ActionType]::NoAction {
+            Write-Host "No action taken for $ProgramName. Skipping."
+        }
+        default {
+            Write-Host "Invalid action for $ProgramName. Skipping."
+        }
     }
 }
 
-
-# Dictionary to map lowercase action strings to ActionType enum values
+# Action map (string to ActionType enum)
 $actionMap = @{
     "install"    = [ActionType]::Install
     "uninstall"  = [ActionType]::Uninstall
@@ -155,6 +172,56 @@ $actionMap = @{
     "validate"   = [ActionType]::Validate
     "noaction"   = [ActionType]::NoAction
 }
+
+
+# Check if VCPKG is listed in the config
+$vcpkgConfig = $config.Programs | Where-Object { $_.Name -eq "vcpkg" }
+
+# Define the first folder path from folderMappings (fallback location if VCPKG is not in the config)
+$firstFolderPath = $config.folderMappings.PSObject.Properties.Value[0]
+
+# If VCPKG is listed in the config, check if it needs to be installed
+if ($vcpkgConfig) {
+    Write-Host "VCPKG is listed in the config."
+
+    # If the action is to install, check if it's already installed
+    if ($vcpkgConfig.Action.ToLower() -eq "install") {
+        Debug-Write "Action set to Install for VCPKG"
+        # Use the install location specified in the config (if present) plus \vcpkg to find the .exe
+        $vcpkgInstallLocation = $folderMapping[$vcpkgConfig.InstallLocation]
+
+        $vcpkgExecutable = Join-Path -Path $vcpkgInstallLocation -ChildPath "vcpkg\vcpkg.exe"
+        Debug-Write "vcpkgExecutable: $vcpkgExecutable"
+
+        if (-not (Test-Path $vcpkgExecutable)) {
+            Write-Host "VCPKG is not installed. Installing..."
+
+            # Proceed with installing VCPKG
+            Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $config.FolderMappings[$vcpkgInstallLocation]
+        } else {
+            Write-Host "VCPKG is already installed at $vcpkgExecutable. Skipping VCPKG installation."
+        }
+    }
+} else {
+    # If VCPKG is not listed in the config, we add it for installation
+    Write-Host "VCPKG is not listed in the config. Adding it for installation."
+
+    # Use the first folder path as the default install location
+    $vcpkgInstallLocation = "$firstFolderPath\vcpkg"
+    $vcpkgConfig = New-Object PSObject -property @{
+        Name = "vcpkg"
+        Action = "install"
+        InstallCommand = "git clone https://github.com/microsoft/vcpkg.git"
+        InstallLocation = $vcpkgInstallLocation
+    }
+
+    # Add VCPKG config to the programs list
+    $config.Programs += $vcpkgConfig
+
+    # Install VCPKG
+    Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $vcpkgInstallLocation
+}
+
 
 foreach ($program in $config.Programs) {
     $programName = $program.Name
@@ -165,9 +232,6 @@ foreach ($program in $config.Programs) {
     # Normalize action string to lowercase
     $normalizedActionString = $actionString.ToLower()
 
-    # DEBUG: Write-Host "Pre Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $normalizedActionString
-
-    # Validate ActionType using the dictionary
     if ($actionMap.ContainsKey($normalizedActionString)) {
         $action = $actionMap[$normalizedActionString]
     } else {
@@ -175,18 +239,9 @@ foreach ($program in $config.Programs) {
         continue
     }
 
-    # DEBUG: Write-Host "Post Validate Action Type | Program Name: " $programName "| Install Command: " $installCommand "| Install Location: " $installLocation "| Action String: " $normalizedActionString
-
-    # Validate InstallLocation
-    if (-not $folderMapping.ContainsKey($installLocation)) {
-        Write-Host "Invalid install location '$installLocation' for program '$programName'. Skipping program."
-        continue
-    }
-
-    # Execute program management if action is not NoAction
     if ($action -ne [ActionType]::NoAction) {
         Manage-Program -ProgramName $programName -InstallCommand $installCommand -Action $action -InstallLocation $installLocation
     } else {
-        Write-Host "NoAction Flag: Skipping Management of:" $programName
+        Write-Host "NoAction Flag: Skipping Management of $programName"
     }
 }

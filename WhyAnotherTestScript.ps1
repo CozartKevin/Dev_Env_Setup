@@ -174,13 +174,13 @@ if ($vcpkgConfig) {
             Write-Host "VCPKG is not installed. Installing..."
             Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $vcpkgInstallLocation
         } else {
-             Write-Host "VCPKG Action set to install but is already installed at $vcpkgExecutable. Skipping VCPKG installation and updating Config with NoAction flag."
+             Write-Host "VCPKG is already installed at $vcpkgExecutable. Skipping VCPKG installation."
             # Change the action for vcpkg to NoAction in the global config
-            $config.Programs | Where-Object { $_.Name -eq "vcpkg" } | ForEach-Object { $_.Action = "NoAction" }
+            $config.Programs | Where-Object { $_.Name -eq "vcpkg" } | ForEach-Object { $_.Action = "noaction" }
        # Save the updated config back to the file
             try {
                 $config | ConvertTo-Json -Depth 5 | Set-Content -Path $configPath -Force
-                Debug-Write "Configuration updated and saved successfully."
+                Write-Host "Configuration updated and saved successfully."
             } catch {
                 Write-Host "Error saving configuration file: $_"
             }
