@@ -14,8 +14,9 @@ This PowerShell script automates the setup and management of a structured develo
 
 All tools and libraries are installed relative to a root `_dev` directory on the same drive as the script.
 
+
+# Example:
 ```
-Example:
 D:_dev
 ├── build_tools
 ├── libraries
