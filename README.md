@@ -69,7 +69,7 @@ D:_dev
 Place the script and programs-config.json in the same directory.  
 Edit programs-config.json to reflect your tools and structure.
 
-Run the script:  
+<u>Run the script:</u>  
 .\dev-setup.ps1
 
 ## Skills Demonstrated
