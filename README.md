@@ -25,7 +25,7 @@ D:_dev
 ├── tools\
 
 ## Configuration File
-"
+
 `programs-config.json` defines:
 
 ```json
@@ -48,7 +48,7 @@ D:_dev
     }
   ]
 }
-"
+```
 
 ## Supported Actions
 * install – Runs the install command(s)
