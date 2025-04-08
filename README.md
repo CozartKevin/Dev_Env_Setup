@@ -1,6 +1,6 @@
 # Dev Environment Bootstrapper
 
-This PowerShell script automates the setup and management of a structured development environment based on a JSON configuration file. It supports installing, uninstalling, updating, and cleaning up tools and libraries used in C++ projects.
+This PowerShell script automates the setup and management of a structured development environment based on a JSON configuration file. \ It supports installing, uninstalling, updating, and cleaning up tools and libraries used in C++ projects.
 
 ## Features
 
