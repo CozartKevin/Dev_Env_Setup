@@ -89,8 +89,9 @@ function Manage-Program {
     Debug-Write "Install Path: $installPath"
     Ensure-FolderExists -folderPath $installPath
 
+    Debug-Write $Action "This action is before the switch statement"
     switch ($Action) {
-        [ActionType]::Install {
+        ([ActionType]::Install) {
             Write-Host "Installing $ProgramName..."
             try {
                 $commands = $InstallCommand -split ';'
@@ -112,7 +113,7 @@ function Manage-Program {
                 Write-Host "Error installing ${ProgramName}: $_"
             }
         }
-        [ActionType]::Uninstall {
+        ([ActionType]::Uninstall) {
             Write-Host "Uninstalling $ProgramName..."
             try {
                 $programPath = Join-Path -Path $installPath -ChildPath $ProgramName
@@ -133,14 +134,14 @@ function Manage-Program {
                 Write-Host "Error uninstalling ${ProgramName}: $_"
             }
         }
-        [ActionType]::Clean {
+        ([ActionType]::Clean) {
             Write-Host "Cleaning up all installed programs..."
             if (Test-Path "$installPath\\vcpkg") {
                 Remove-Item -Path "$installPath\\vcpkg" -Recurse -Force
                 Write-Host "vcpkg and its packages removed successfully."
             }
         }
-        [ActionType]::NoAction {
+        ([ActionType]::NoAction) {
             Write-Host "No action taken for $ProgramName. Skipping."
         }
         default {
@@ -189,14 +190,20 @@ if ($vcpkgConfig) {
 } else {
     Write-Host "VCPKG is not listed in the config. Adding it for installation."
 
-    # Add VCPKG config to the programs list
+    #Set default install location based on first entry in folderMapping from the config
     $vcpkgInstallLocation = $folderMapping.Values[0] + "\vcpkg"
+
+    # Check if VCPKG is already installed in that default ins
+    $vcpkgExecutable = Join-Path -Path $vcpkgInstallLocation -ChildPath "vcpkg\vcpkg.exe"
+
+    # Add VCPKG config to the programs list
     $vcpkgConfig = New-Object PSObject -property @{
         Name = "vcpkg"
         Action = "install"
         InstallCommand = "git clone https://github.com/microsoft/vcpkg.git"
         InstallLocation = $vcpkgInstallLocation
     }
+    
 
     $config.Programs += $vcpkgConfig
 

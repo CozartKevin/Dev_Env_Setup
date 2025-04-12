@@ -185,6 +185,9 @@ if ($vcpkgConfig) {
                 Write-Host "Error saving configuration file: $_"
             }
         }
+    } elseif ($vcpkgConfig.Action.ToLower() -eq "uninstall"){
+    
+
     }
 } else {
     Write-Host "VCPKG is not listed in the config. Adding it for installation."
