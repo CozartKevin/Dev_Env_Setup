@@ -1,4 +1,14 @@
-﻿
+﻿#
+# We only care about the action if it is in the config.  
+#     If it ins't in the config we check if it is installed.
+#         not in config --> Installed or not installed
+            Not installed -> Install
+            installed -> ignore
+#
+#
+#
+#
+#
 #
 #  Is it in the config? means we have more options.  6 right? in conf install uninstalled, not in conf install uninstalled
 #
@@ -22,14 +32,17 @@
 # Check if VCPKG is listed in the config and handle installation logic only once
 $vcpkgConfig = $config.Programs | Where-Object { $_.Name -eq "vcpkg" }
 
+
+
 if ($vcpkgConfig) {
     Debug-Write "VCPKG is listed in the config."
+    
+    $vcpkgInstallRoot = $folderMapping[$vcpkgConfig.InstallLocation]
+    $vcpkgExecutable = Join-Path -Path $vcpkgInstallRoot -ChildPath "vcpkg\vcpkg.exe"
 
     # If the action is to install, check if it's already installed
     if ($vcpkgConfig.Action.ToLower() -eq "install") {
-        $vcpkgInstallLocation = $folderMapping[$vcpkgConfig.InstallLocation]
-        $vcpkgExecutable = Join-Path -Path $vcpkgInstallLocation -ChildPath "vcpkg\vcpkg.exe"
-
+        
         if (-not (Test-Path $vcpkgExecutable)) {
             Write-Host "VCPKG is not installed. Installing..."
             Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $vcpkgInstallLocation
@@ -46,23 +59,40 @@ if ($vcpkgConfig) {
             }
         }
     } elseif ($vcpkgConfig.Action.ToLower() -eq "uninstall"){
-    
+            
+         if (-not (Test-Path $vcpkgExecutable)) {
+          Write-Host "VCPKG isn't installed and is set to be uninstalled.  Setting to install as VCPKG is required for other program installs."
+          # Change the action for vcpkg to install in the global config
+          $config.Programs | Where-Object { $_.Name -eq "vcpkg" } | ForEach-Object { $_.Action = "install" }
+         }
 
     }
 } else {
     Write-Host "VCPKG is not listed in the config. Adding it for installation."
 
     # Add VCPKG config to the programs list
-    $vcpkgInstallLocation = $folderMapping.Values[0] + "\vcpkg"
+    $vcpkgInstallRoot = $folderMapping.Values[0] + "\vcpkg" #Default location of first folderMapping folder for VCPKG install
+    $vcpkgExecutable = Join-Path -Path $vcpkgInstallRoot -ChildPath "vcpkg\vcpkg.exe"
+    
+
+    if (-not (Test-Path $vcpkgExecutable)) {
+    Write-Host "VCPKG is not installed and not in the config.  Adding to the config"
     $vcpkgConfig = New-Object PSObject -property @{
         Name = "vcpkg"
         Action = "install"
-        InstallCommand = "git clone https://github.com/microsoft/vcpkg.git"
+        InstallCommand = "git clone https://github.com/microsoft/vcpkg; .\\vcpkg\\bootstrap-vcpkg.bat"
         InstallLocation = $vcpkgInstallLocation
     }
 
     $config.Programs += $vcpkgConfig
 
-    # Install VCPKG
-    Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $vcpkgInstallLocation
+    # Install VCPKG  Install not needed here as added to the config before foreeach loop that manages program installs
+    # Manage-Program -ProgramName "vcpkg" -InstallCommand $vcpkgConfig.InstallCommand -Action ([ActionType]::Install) -InstallLocation $vcpkgInstallLocation
+     
+     } else { 
+
+     #If installed and not in the config then ignore and continue on.
+
+     }     
+
 }
