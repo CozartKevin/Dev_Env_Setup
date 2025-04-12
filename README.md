@@ -49,6 +49,18 @@ D:_dev
       "Command": "git clone https://github.com/microsoft/vcpkg.git; .\\bootstrap-vcpkg.bat",
       "InstallLocation": "TOOLS",
       "Action": "install"
+    },
+    {
+      "Name": "glfw3",
+      "Command": ".\\vcpkg\\vcpkg install glfw3",
+      "Action": "NoAction",
+      "InstallLocation": "GRAPHICS_LIB"
+    },
+    {
+      "Name": "glm",
+      "Command": ".\\vcpkg\\vcpkg install glm",
+      "Action": "NoAction",
+      "InstallLocation": "GRAPHICS_LIB"
     }
   ]
 }
