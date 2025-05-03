@@ -1,4 +1,9 @@
-﻿$isDebugMode = $true  # Change this to $false to disable debugging output
+﻿param (
+    [string]$ConfigName = "programs-config_Test.json"
+)
+
+
+$isDebugMode = $true  # Change this to $false to disable debugging output
 
 function Debug-Write {
     param (
@@ -10,13 +15,16 @@ function Debug-Write {
     }
 }
 
-# Path to the JSON configuration file (relative to script's location)
-$configPath = (Split-Path $MyInvocation.MyCommand.Path -Parent) + "\programs-config_Test.json"
+
+
+
+# Root folder to the script location where  JSON configuration file should be
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$configPath = Join-Path $scriptDir $ConfigName
 
 # Validate if JSON file exists
-if (-not (Test-Path -Path $configPath)) {
-    Write-Host "Configuration file $configPath not found. Exiting..."
-    exit
+if (-not (Test-Path $configPath)) {
+    throw "Config file '$ConfigName' not found at path '$configPath'"
 }
 
 # Load the JSON configuration
@@ -26,6 +34,7 @@ try {
     Write-Host "Error loading configuration file ${configPath}: $_"
     exit
 }
+
 
 # Validate JSON structure
 if (-not $config.Programs -or $config.Programs.GetType().Name -ne 'Object[]') {

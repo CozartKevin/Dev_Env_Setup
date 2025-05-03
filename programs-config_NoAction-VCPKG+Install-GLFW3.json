@@ -1,0 +1,73 @@
+{
+    "Comments":  {
+                     "Description":  "This JSON file defines the programs to be managed by the script. Each program includes details like name, install command, action, and install location.",
+                     "Instructions":  {
+                                          "AddingPrograms":  [
+                                                                 "To add a new program, include an object in thePrograms array with the following fields:",
+                                                                 "  - Name: The programs name (e.g., glfw3).",
+                                                                 "  - Command: The command to execute for installation (e.g., ./vcpkg/vcpkg install glfw3).",
+                                                                 "  - Action: The desired action for this program. Use one of the following values:",
+                                                                 "      * Install: To install the program.",
+                                                                 "      * Uninstall: To uninstall the program.",
+                                                                 "      * Update: Updates program using VCPKG.",
+                                                                 "      * Clean: removes program specific folder from directory structure.",
+                                                                 "      * validate: validates install with VCPKG",
+                                                                 "      * NoAction: To skip any action for this program.",
+                                                                 "  - InstallLocation: The folder where the program will be installed. Adjust locations via FolderMappings below",
+                                                                 "    Current valid options are:",
+                                                                 "      * BUILD_TOOLS: For build tools.",
+                                                                 "      * LIBRARIES: For general purpose libraries.",
+                                                                 "      * TOOLS: For general tools.",
+                                                                 "      * AUDIO_LIB: For audio-related libraries.",
+                                                                 "      * EMBEDDED_LIB: For embedded system libraries.",
+                                                                 "      * GRAPHICS_LIB: For graphics-related libraries.",
+                                                                 "      * NETWORKING_LIB: For networking-related libraries."
+                                                             ],
+                                          "Example":  "To add example-program, you might define: { \"Name\": \"example-program\", \"Command\": \"./vcpkg/vcpkg install example\", \"Action\": \"Install\", \"InstallLocation\": \"GRAPHICS_LIB\" }"
+                                      }
+                 },
+    "FolderMappings":  [
+                           {
+                               "Key":  "BUILD_TOOLS",
+                               "Path":  "\\_dev\\build_tools"
+                           },
+                           {
+                               "Key":  "LIBRARIES",
+                               "Path":  "\\_dev\\libraries"
+                           },
+                           {
+                               "Key":  "TOOLS",
+                               "Path":  "\\_dev\\tools"
+                           },
+                           {
+                               "Key":  "AUDIO_LIB",
+                               "Path":  "\\_dev\\libraries\\audio"
+                           },
+                           {
+                               "Key":  "EMBEDDED_LIB",
+                               "Path":  "\\_dev\\libraries\\embedded"
+                           },
+                           {
+                               "Key":  "GRAPHICS_LIB",
+                               "Path":  "\\_dev\\libraries\\graphics"
+                           },
+                           {
+                               "Key":  "NETWORKING_LIB",
+                               "Path":  "\\_dev\\libraries\\networking"
+                           }
+                       ],
+    "Programs":  [
+                     {
+                         "Name":  "vcpkg",
+                         "Command":  "git clone https://github.com/microsoft/vcpkg; .\\vcpkg\\bootstrap-vcpkg.bat",
+                         "Action":  "NoAction",
+                         "InstallLocation":  "TOOLS"
+                     },
+                     {
+                         "Name":  "glfw3",
+                         "Command":  ".\\vcpkg\\vcpkg install glfw3",
+                         "Action":  "install",
+                         "InstallLocation":  "GRAPHICS_LIB"
+                     }
+                 ]
+}

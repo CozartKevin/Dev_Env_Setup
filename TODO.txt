@@ -1,4 +1,15 @@
 TODO:
+
+Organize and setup Test configs so that you can get all 16 cases for VCPKG tested
+    - Cases are confusing but there should be 16 of them
+    - VCPKG Installed / not installed
+    - VCPKG in config / not in configs
+    - VCPKG install / uninstall / noaction
+    - programs (install/uninstall) - same case cause VCPKG needs to be installed for this
+
+
+
+
 Find a way to verify install of VCPKG before if/else of config check to simplify the looping in case VCPKG isnt in config and is installed
     - Loop through all foldermapping elements searching for VCPKG (If found try to find vcpkg.exe)
 
@@ -13,3 +24,4 @@ setup config with how to info and basic test parameters
 Folder creation and verification
 Install/Uninstall VCPKG via config
 Adjust VCPKG config if set to intall but already installed
+Setup Param to run various configs for test script
